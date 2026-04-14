@@ -31,7 +31,7 @@ def PrintAirport(airport):
     print(airport.longitude)
     print(airport.SCHENGEN)
 
-def convert(coord):
+def converttodegrees(coord):
     coord = coord.strip().upper()
     if coord[0] == 'S'or coord[0] =='W':
         sign = -1
@@ -49,6 +49,26 @@ def convert(coord):
     decimal = degrees + minutes / 60 + seconds / 3600
 
     return sign * decimal
+def convertfromdegrees (value, is_lat=True):
+    if value >= 0:
+        sign = 'N'
+    else:
+        sign = 'S'
+    if not is_lat:
+        if value >= 0:
+            sign = 'E'
+        else :
+            sign ='W'
+
+    value = abs(value)
+    degrees = int(value)
+    minutes = int((value - degrees) * 60)
+    seconds = (value - degrees - minutes/60) * 3600
+
+    if is_lat:
+        return f"{sign}{degrees:02d}{minutes:02d}{seconds:05.2f}"
+    else:
+        return f"{sign}{degrees:03d}{minutes:02d}{seconds:05.2f}"
 
 def LoadAirports (filename):
     p = []
@@ -57,10 +77,28 @@ def LoadAirports (filename):
         for linea in f:
             datos = linea.strip().split()
             ICAO = datos[0]
-            latitude = convert((datos[1]))
-            longitude = convert(datos[2])
+            latitude = converttodegrees((datos[1]))
+            longitude = converttodegrees(datos[2])
             airport = Airport(ICAO,latitude,longitude,SCHENGEN= False)
             p.append(airport)
     return p
 
+def SaveSchengenAirports(airports, filename):
+    try:
+        schengen_airports = []
+
+        for airport in airports:
+            SetSchengen(airport)  # ← Añadimos el elemento booleano Schengen
+            if airport.SCHENGEN:
+                schengen_airports.append(airport)
+
+        with open(filename, 'w') as f:  #esto sirve para añadirlo al fichero
+                                    # el cual queremos que se indique los aerpuertos shengen
+            for airport in schengen_airports:
+                lat = convertfromdegrees(airport.latitude, is_lat=True)
+                lon = convertfromdegrees(airport.longitude, is_lat=False)
+                f.write(f"{airport.ICAO} {lat} {lon}\n")
+
+    except Exception:
+        return -1  # error general
 
