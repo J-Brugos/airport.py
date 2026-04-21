@@ -1,4 +1,4 @@
-from project.airport import Airport, SetSchengen, PrintAirport, LoadAirports, MapAirports, RemoveAirport, AddAirport
+from project.airport import Airport, SetSchengen, PrintAirport, LoadAirports, MapAirports, RemoveAirport, AddAirport, PlotAirports
 from project.aircraft import LoadArrivals, PlotArrivals
 airport = Airport('LEBL', 41.297445, 2.0832941, None)
 SetSchengen(airport)
@@ -52,7 +52,7 @@ for line in lista_airports:
     PrintAirport(line)
     print('\n')
 
-
+PlotAirports(resultado)
 
 
 
