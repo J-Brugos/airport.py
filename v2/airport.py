@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 class Airport:
     def __init__(self, ICAO, latitude, longitude, SCHENGEN):
         self.ICAO = ICAO
@@ -26,13 +25,13 @@ def SetSchengen(airport):
     resultat = IsSchengenAirport(airport.ICAO[:2])
     airport.SCHENGEN = resultat
 
-def PrintAirport(airport):
+def PrintAirport(airport): #Imprimimos la informacion del aeropuerto
     print(airport.ICAO)
     print(airport.latitude)
     print(airport.longitude)
     print(airport.SCHENGEN)
 
-def converttodegrees(coord):
+def converttodegrees(coord):   #convertimos coordenadas de tipo norte, sur, este, oeste a grados
     coord = coord.strip().upper()
     if coord[0] == 'S'or coord[0] =='W':
         sign = -1
@@ -50,7 +49,7 @@ def converttodegrees(coord):
     decimal = degrees + minutes / 60 + seconds / 3600
 
     return sign * decimal
-def convertfromdegrees (value, is_lat=True):
+def convertfromdegrees (value, is_lat=True): #Al revés que la función anterior
     if value >= 0:
         sign = 'N'
     else:
@@ -71,7 +70,7 @@ def convertfromdegrees (value, is_lat=True):
     else:
         return f"{sign}{degrees:03d}{minutes:02d}{seconds:05.2f}"
 
-def LoadAirports (filename):
+def LoadAirports (filename): #Dado un documento, lo guardamos en nuestra classe Airport y lo añadimos a nuestro fichero.
     p = []
 
     with open (filename, 'r') as f:
@@ -84,7 +83,7 @@ def LoadAirports (filename):
             p.append(airport)
     return p
 
-def SaveSchengenAirports(airports, filename):
+def SaveSchengenAirports(airports, filename): #Gaurda solo los aeropuertos Schengen
     try:
         schengen_airports = []
 
@@ -129,7 +128,7 @@ def RemoveAirport(airports, code):
         airports[i] = airports[i + 1]
         i += 1
 
-    del airports[-1]  # Eliminamos el último elemento duplicado, usamos del porque el 0 al final podria dar problemas para comprobar.
+    del airports[-1]  # Eliminamos el último elemento duplicado, usamos "del" porque el 0 al final podria dar problemas para comprobar.
 
 
 def PlotAirports(airports):
@@ -190,4 +189,5 @@ def MapAirports(airports, filename="airports.kml"):
     f.write('</kml>\n')
     f.close()
     print(f"Archivo {filename} generado. Ábrelo con Google Earth.")
+
 
