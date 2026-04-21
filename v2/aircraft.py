@@ -91,6 +91,52 @@ def SaveFlights(aircrafts, filename):
 
     file.close()
 
+def PlotAirlines(aircrafts):
+    # Check if there are flights to show
+    if not aircrafts:
+        print("Error: No hay vuelos para mostrar.")
+        return
+
+    # Lists to store airline names and their flight counts
+    airlines = []
+    frequencies = []
+
+    # Go through all flights
+    i = 0
+    while i < len(aircrafts):
+        airline = aircrafts[i].airline
+
+        # Search for the airline in the list
+        found = False
+        position = 0
+        j = 0
+
+        while j < len(airlines):
+            if airlines[j] == airline:
+                found = True
+                position = j
+            j += 1
+
+        # Update count or add a new airline
+        if found:
+            frequencies[position] += 1
+        else:
+            airlines.append(airline)
+            frequencies.append(1)
+
+        i += 1
+
+    # Draw the bar chart
+    plt.bar(airlines, frequencies, color='orange')
+    plt.xlabel('Airline')
+    plt.ylabel('Number of flights')
+    plt.title('Number of flights by airline')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+
 #test section
 aircraft = LoadArrivals("arrivals.txt") # Cargamos los datos del archivo que creamos
 PlotArrivals(aircraft) # Llamamos a la función de gráfico
+arrivals = LoadArrivals("arrivals.txt") # Cargamos los datos del archivo que creamos
+PlotAirlines(arrivals) # Llamamos a la función de gráfico
