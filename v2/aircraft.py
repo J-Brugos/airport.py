@@ -34,21 +34,16 @@ def LoadArrivals(filename):
     return p
 
 def PlotArrivals(aircrafts):
-    if not aircrafts:
-        print("Error: No hay vuelos para mostrar.")
-        return
-
     frecuencias = [0] * 24
-
-    for vuelo in aircrafts:
-        try:
-            partes = vuelo.arrival.split(':')
+    i=0
+    while i < len(aircrafts):
+            partes = aircrafts[i].arrival.split(':')
             hora = int(partes[0])
 
-            if 0 <= hora < 24:
+            if 0 <= hora < 24: #si la hora es real, sumamos la frecuencia de la hora correspondiente
                 frecuencias[hora] += 1
-        except:
-            continue
+            i = i + 1
+
 
     horas = range(24)
     plt.bar(horas, frecuencias, color='turquoise')
@@ -56,3 +51,46 @@ def PlotArrivals(aircrafts):
     plt.ylabel('Número de vuelos')
     plt.title('Frecuencia de llegadas')
     plt.show()
+
+
+def SaveFlights(aircrafts, filename):
+    file = open(filename, 'w')
+    file.write("AIRCRAFT ORIGIN ARRIVAL AIRLINE\n")
+
+    #Recorremos toda la lista
+    i = 0
+    while i < len(aircrafts):
+        # Accedemos al elemento usando el índice [i] que le llamaremos vuelo.
+        vuelo = aircrafts[i]
+
+        # Procesamiento de cada campo
+        if vuelo.ICAO == "" or vuelo.ICAO is None: #si no existe pues dejaremos un guión como nos piden
+            icao = "-"
+        else:
+            icao = vuelo.ICAO #De lo contrario, lo añadiremos.
+
+        if vuelo.origin == "" or vuelo.origin is None:
+            origin = "-"
+        else:
+            origin = vuelo.origin
+
+        if vuelo.arrival == "" or vuelo.arrival is None:
+            arrival = "-"
+        else:
+            arrival = vuelo.arrival
+
+        if vuelo.airline == "" or vuelo.airline is None:
+            airline = "-"
+        else:
+            airline = vuelo.airline
+
+        # Escribimos la línea
+        file.write(icao + " " + origin + " " + arrival + " " + airline + "\n")
+
+        i = i + 1
+
+    file.close()
+
+#test section
+aircraft = LoadArrivals("arrivals.txt") # Cargamos los datos del archivo que creamos
+PlotArrivals(aircraft) # Llamamos a la función de gráfico
