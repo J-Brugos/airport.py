@@ -14,7 +14,7 @@ class Terminal:
 class BoardingArea:
     def __init__(self, name, area_type):
         self.name = name              # Nombre del área (ej.: "T1BAa")
-        self.area_type = area_type    # "Schengen" o "no-Schengen"
+        self.area_type = False        # "Schengen" boolean
         self.gates = []               # Lista de objetos Gate
 
 
@@ -23,4 +23,3 @@ class Gate:
         self.name = name              # Nombre de la puerta (ej.: "T1BAaG1")
         self.occupied = False         # Booleano: True si está ocupada
         self.aircraft_id = None       # ID de la aeronave si está ocupada
-
