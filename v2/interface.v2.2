@@ -1,0 +1,250 @@
+from tkinter import *
+from tkinter import filedialog, messagebox
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+from airport import *
+
+airports = []
+
+# FUNCTIONS
+
+
+def load_airports_from_interface(filename):
+    loaded_airports = []
+
+    with open(filename, "r") as f:
+        for line_number, line in enumerate(f, start=1):
+            data = line.strip().split()
+
+            if not data:
+                continue
+
+            if len(data) < 3 or data[0].upper() in ("ICAO", "CODE", "AIRCRAFT"):
+                continue
+
+            try:
+                airport = Airport(
+                    data[0].upper(),
+                    parse_coordinate(data[1]),
+                    parse_coordinate(data[2]),
+                    False
+                )
+            except ValueError as exc:
+                raise ValueError(f"Invalid airport coordinates on line {line_number}: {line.strip()}") from exc
+
+            loaded_airports.append(airport)
+
+    return loaded_airports
+
+
+def parse_coordinate(value):
+    value = value.strip().upper()
+
+    try:
+        return float(value)
+    except ValueError:
+        return converttodegrees(value)
+
+def load_file():
+    global airports
+
+    filename = filedialog.askopenfilename(
+        title="Select file",
+        filetypes=(("Text files", "*.txt"), ("All files", "*.*"))
+    )
+
+    if not filename:
+        return
+
+    try:
+        airports = load_airports_from_interface(filename)
+    except ValueError as exc:
+        messagebox.showerror("Error", str(exc))
+        return
+
+    textBox.delete(1.0, END)
+    with open(filename, "r") as f:
+        textBox.insert(END, f.read())
+
+    refresh_list()
+    update_info()
+
+
+def save_schengen():
+    if not airports:
+        messagebox.showerror("Error", "No airports loaded")
+        return
+
+    filename = filedialog.asksaveasfilename(defaultextension=".txt")
+
+    if not filename:
+        return
+
+    res = SaveSchengenAirports(airports, filename)
+
+    if res == -1:
+        messagebox.showerror("Error", "No Schengen airports")
+    else:
+        messagebox.showinfo("OK", "File saved")
+
+
+def update_info():
+    total = len(airports)
+    schengen = sum(1 for a in airports if a.SCHENGEN)
+    infoLabel.config(text=f"Total: {total} | Schengen: {schengen}")
+
+
+def add_airport():
+    global airports
+
+    data = entry.get().strip().split()
+
+    if len(data) != 3:
+        messagebox.showerror("Error", "Format: CODE LAT LON (example: LEBL 41.3 2.1)")
+        return
+
+    try:
+        code = data[0].upper()
+        lat = float(data[1])
+        lon = float(data[2])
+
+        a = Airport(code, lat, lon, False)
+        SetSchengen(a)
+
+        if any(existing.ICAO == code for existing in airports):
+            messagebox.showinfo("Info", "Airport already exists")
+            return
+
+        AddAirport(airports, a)
+        messagebox.showinfo("Info", "Airport added")
+
+        refresh_list()
+        update_info()
+
+    except ValueError:
+        messagebox.showerror("Error", "Latitude and longitude must be numbers")
+
+
+def remove_airport():
+    global airports
+
+    code = entry.get().strip().upper()
+
+    if not code:
+        messagebox.showinfo(
+            "Remove Airport",
+            "Enter the ICAO code of the airport you want to delete, example: 'LEBL'"
+        )
+        return
+
+    if not any(a.ICAO == code for a in airports):
+        messagebox.showerror("Error", "Airport not found")
+        return
+
+    RemoveAirport(airports, code)
+    messagebox.showinfo("OK", f"Airport {code} removed")
+
+    refresh_list()
+    update_info()
+
+
+def refresh_list():
+    listBox.delete(1.0, END)
+
+    for a in airports:
+        listBox.insert(END, f"{a.ICAO} ({a.latitude:.4f}, {a.longitude:.4f})\n")
+
+
+def set_schengen_all():
+    for a in airports:
+        SetSchengen(a)
+
+    refresh_list()
+    update_info()
+
+
+def plot_airports():
+    for widget in plot_frame.winfo_children():
+        widget.destroy()
+
+    if not airports:
+        return
+
+    fig = Figure(figsize=(5, 4))
+    ax = fig.add_subplot(111)
+
+    lats = [a.latitude for a in airports]
+    lons = [a.longitude for a in airports]
+
+    ax.scatter(lons, lats)
+    ax.set_title("Airports")
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+
+    canvas = FigureCanvasTkAgg(fig, master=plot_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill="both", expand=True)
+
+
+def map_airports():
+    if not airports:
+        return
+
+    filename = filedialog.asksaveasfilename(defaultextension=".kml")
+
+    if not filename:
+        return
+
+    MapAirports(airports, filename)
+    messagebox.showinfo("OK", "KML saved")
+
+
+# ================= INTERFACE ================= #
+
+window = Tk()
+window.title("Airport Manager")
+window.geometry("900x500")
+
+# PANELS
+left_frame = Frame(window, width=250)
+left_frame.pack(side="left", fill="y")
+
+right_frame = Frame(window)
+right_frame.pack(side="right", fill="both", expand=True)
+
+# ================= LEFT SIDE ================= #
+
+Label(left_frame, text="AIRPORT INTERFACE", font=("Arial", 14)).pack(pady=10)
+
+entry = Entry(left_frame)
+entry.pack(fill="x", padx=10, pady=5)
+
+Button(left_frame, text="Add Airport", command=add_airport).pack(fill="x", padx=10)
+Button(left_frame, text="Remove Airport", command=remove_airport).pack(fill="x", padx=10)
+Button(left_frame, text="Set Schengen", command=set_schengen_all).pack(fill="x", padx=10)
+Button(left_frame, text="Plot Airports", command=plot_airports).pack(fill="x", padx=10)
+
+Button(left_frame, text="Load File", command=load_file).pack(fill="x", padx=10, pady=(20, 0))
+Button(left_frame, text="Save Schengen", command=save_schengen).pack(fill="x", padx=10)
+Button(left_frame, text="Map Airports", command=map_airports).pack(fill="x", padx=10)
+
+# ================= RIGHT SIDE ================= #
+
+infoLabel = Label(right_frame, text="Total: 0 | Schengen: 0", font=("Arial", 12))
+infoLabel.pack(pady=5)
+
+textBox = Text(right_frame, height=8)
+textBox.pack(fill="x", padx=10, pady=5)
+
+Label(right_frame, text="Airports list:").pack()
+
+listBox = Text(right_frame)
+listBox.pack(fill="both", expand=True, padx=10, pady=5)
+
+# plot area (BOTTOM EMPTY PART)
+plot_frame = Frame(right_frame)
+plot_frame.pack(fill="both", expand=True)
+
+# ================= RUN ================= #
+
+window.mainloop()
