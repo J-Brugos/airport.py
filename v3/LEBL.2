@@ -1,0 +1,322 @@
+# --------------------------------------------------
+# CLASES
+# --------------------------------------------------
+
+class Gate:
+    def __init__(self, name):
+        self.name = name  # Nombre de la puerta (ej.: "T1BAaG1")
+        self.occupied = False  # Booleano: True si está ocupada
+        self.aircraft_id = None  # ID de la aeronave si está ocupada
+
+
+class BoardingArea:
+    def __init__(self, name, area_type):
+        self.name = name  # Nombre del área (ej.: "T1BAa")
+        self.area_type = False  # "Schengen" boolean
+        self.gates = []  # Lista de objetos Gate
+
+        # Lógica para el booleano: si el texto es "Schengen", pasa a True
+        if area_type == "Schengen":
+            self.area_type = True
+
+
+class Terminal:
+    def __init__(self, name):
+        self.name = name  # Nombre de la terminal (ej.: "T1")
+        self.boarding_areas = []  # Lista de objetos BoardingArea
+        self.airlines = []  # Lista de códigos ICAO de aerolíneas
+
+
+class BarcelonaAP:
+    def __init__(self, code):
+        self.code = code  # Código ICAO del aeropuerto (ej.: "LEBL")
+        self.terminals = []  # Lista de objetos Terminal
+
+# --------------------------------------------------
+# FUNCIONES
+# --------------------------------------------------
+
+def SetGates(area, init_gate, end_gate, prefix):
+    # Si el número final no es mayor al inicial, error (-1)
+    if end_gate <= init_gate:
+        return -1
+
+    # Se elimina la lista previa si existía
+    area.gates = []
+
+    i = init_gate
+    while i <= end_gate:
+        # Concatenación del prefijo y el número de puerta
+        nombre_p = prefix + str(i)
+        nueva_puerta = Gate(nombre_p)
+
+        # Se añade a la lista de puertas del objeto area
+        area.gates.append(nueva_puerta)
+        i += 1
+
+    return 0
+
+
+def LoadAirlines(terminal, t_name):
+    # Construimos el nombre del archivo (ej: "T1_Airlines.txt")
+    file_name = t_name + "_Airlines.txt"
+
+    try:
+        # Intentamos abrir el archivo
+        file = open(file_name, 'r')
+
+        # Leemos las líneas
+        lines = file.readlines()
+
+        nuevas_aerolineas = []
+
+        # Recorremos las líneas leídas con un bucle while
+        i = 0
+        while i < len(lines):
+            linea_limpia = lines[i].strip()
+
+            # Si la línea contiene texto, extraemos el código
+            if linea_limpia != "":
+                # dividimos la línea en una lista de palabras usando los espacios como separadores
+                palabras = linea_limpia.split()
+
+                # Guardamos la última palabra de la lista (el código ICAO)
+                codigo_icao = palabras[-1]
+
+                # Añadimos el código a nuestra lista temporal
+                nuevas_aerolineas.append(codigo_icao)
+
+            i += 1
+
+        # Actualizamos la terminal
+        terminal.airlines = nuevas_aerolineas
+        #Cerramos el archivo
+        file.close()
+
+    except FileNotFoundError:
+        # Si el archivo no existe, devolvemos error
+        return -1
+
+
+def LoadAirportStructure(filename):
+    try:
+        file = open(filename, 'r')
+        lines = file.readlines()
+        file.close()
+
+        # 1. De la primera línea sacamos el código del aeropuerto (ej: "LEBL")
+        primera_linea = lines[0].strip().split()
+        codigo_ap = primera_linea[0]
+        aeropuerto = BarcelonaAP(codigo_ap)
+
+        # Variables auxiliares para recordar en qué terminal estamos trabajando
+        terminal_actual = None
+
+        # 2. Recorremos el resto de líneas con un while
+        i = 1
+        while i < len(lines):
+            linea_limpia = lines[i].strip()
+
+            if linea_limpia != "":
+                palabras = linea_limpia.split()
+                tipo_linea = palabras[0]  # Puede ser "Terminal" o "Area"
+
+                # --- SI ES UNA TERMINAL ---
+                if tipo_linea == "Terminal":
+                    t_name = palabras[1]  # "T1" o "T2"
+                    terminal_actual = Terminal(t_name)
+
+                    # REQUISITO: Cargamos las aerolíneas de esta terminal
+                    LoadAirlines(terminal_actual, t_name)
+
+                    # Guardamos la terminal en el aeropuerto
+                    aeropuerto.terminals.append(terminal_actual)
+
+                # --- SI ES UN ÁREA DE EMBARQUE ---
+                elif tipo_linea == "Area":
+                    letra_area = palabras[1]  # "A", "B", "M", etc.
+                    tipo_area = palabras[2]  # "Schengen" o "non-Schengen"
+
+                    # Las puertas están fijas en las posiciones 5 y 7 de la línea
+                    # Ejemplo: ["Area", "A", "Schengen", "Gates", "1", "-", "11"]
+                    p_inicio = int(palabras[4])  # 1
+                    p_fin = int(palabras[6])  # 11
+
+                    # Creamos el objeto BoardingArea (le pasamos la letra y el tipo)
+                    # El constructor interno ya pondrá True si es "Schengen"
+                    nueva_area = BoardingArea(letra_area, tipo_area)
+
+                    # REQUISITO: Prefijo único por área para SetGates (ej: "T1-A-")
+                    prefijo = terminal_actual.name + "-" + letra_area + "-"
+                    SetGates(nueva_area, p_inicio, p_fin, prefijo)
+
+                    # Añadimos la zona a la terminal en la que estamos
+                    terminal_actual.boarding_areas.append(nueva_area)
+
+            i += 1
+
+        return aeropuerto
+
+    except FileNotFoundError:
+        return -1
+
+def IsAirlineInTerminal(terminal, name):
+    # 1. Comprobación de error: si el nombre está vacío
+    if name == "":
+        return False, -1
+
+    # 2. Obtenemos la lista de aerolíneas de la terminal
+    lista_aerolineas = terminal.airlines
+
+    # 3. Recorremos la lista con un ciclo while
+    i = 0
+    largo_lista = len(lista_aerolineas)
+
+    while i < largo_lista:
+        # Si encontramos la aerolínea, devolvemos True inmediatamente
+        if lista_aerolineas[i] == name:
+            return True
+
+        # Avanzamos a la siguiente posición
+        i = i + 1
+
+    # 4. Si el ciclo termina y no la encontró, devolvemos False
+    return False
+
+def SearchTerminal(bcn, name):
+    # 1. Accedemos a la lista de terminales del aeropuerto
+    lista_terminales = bcn.terminals
+
+    # 2. Inicializamos el índice 'i' y el tamaño de la lista de terminales
+    i = 0
+    total_terminales = len(lista_terminales)
+
+    # 3. Bucle 'while' para revisar cada terminal una por una
+    while i < total_terminales:
+        terminal_actual = lista_terminales[i]
+
+        # Invocamos la función previa para validar si la aerolínea está en esta terminal
+        if IsAirlineInTerminal(terminal_actual, name) == True:
+            # Si se encuentra aquí, retornamos el atributo .name de la terminal
+            return terminal_actual.name
+
+        # Incrementamos el índice 'i' para pasar a la siguiente terminal
+        i = i + 1
+
+    # 4. Si el bucle termina sin encontrar coincidencias, devolvemos un string vacío
+    return ""
+
+def AssignGate (bcn, aircraft):
+    # 1. Encontrar el nombre de la terminal asignada a la aerolínea
+    terminal_name = SearchTerminal(bcn, aircraft.airline)
+
+    # Si la aerolínea no está registrada en ninguna terminal, no se puede asignar puerta
+    if terminal_name == "":
+        return -1
+
+    # 2. Determinar si el vuelo es Schengen o no-Schengen (True o False)
+    is_flight_schengen = IsSchengenAirport(aircraft.origin)
+
+    # 3. Buscar el objeto Terminal correspondiente dentro de bcn.terminals
+    target_terminal = None
+    i = 0
+    while i < len(bcn.terminals):
+        if bcn.terminals[i].name == terminal_name:
+            target_terminal = bcn.terminals[i]
+            break  # Terminal encontrada, rompemos el bucle
+        i += 1
+
+    # Si por seguridad no se encontrase la terminal en la lista, salimos
+    if target_terminal is None:
+        return -1
+
+    # 4. Recorrer las áreas de embarque de la terminal encontrada
+    j = 0
+    while j < len(target_terminal.boarding_areas):
+        area = target_terminal.boarding_areas[j]
+
+        # Comprobar si el tipo de área coincide con el tipo de vuelo (Schengen/no-Schengen)
+        if area.area_type == is_flight_schengen:
+
+            # 5. Recorrer las puertas de esta área de embarque
+            k = 0
+            while k < len(area.gates):
+                gate = area.gates[k]
+
+                # Buscar la primera puerta que NO esté ocupada
+                if not gate.occupied:
+                    # Asignar la puerta actualizando sus propiedades
+                    gate.occupied = True
+                    gate.aircraft_id = aircraft.id
+                    return 0  # Retorno exitoso e inmediato al asignar la puerta
+
+                k += 1  # Siguiente puerta
+
+        j += 1  # Siguiente área de embarque
+
+    # 6. Si se recorren todos los bucles y no hay ninguna puerta libre, devolvemos error
+    return -1
+
+# --------------------------------------------------
+# TEST
+# --------------------------------------------------
+
+# def LoadAirlines
+# -------------------------
+t = Terminal("T1")
+t.airlines = ["VIEJA1", "VIEJA2"]
+
+# Probamos carga normal
+LoadAirlines(t, "T1")
+print("Resultado T1:", t.airlines)
+
+# Probamos error con un archivo que no exista
+err = LoadAirlines(t, "T3")
+print("Código error (debe ser -1):", err)
+print("Terminal tras error (no cambia):", t.airlines)
+
+# def AirportStructure
+# -------------------------
+mi_aeropuerto = LoadAirportStructure("Terminals.txt")
+
+if mi_aeropuerto == -1:
+    print("Error: El archivo Terminals.txt no existe.")
+else:
+    print("--- TEST AEROPUERTO ---")
+    print("Código Aeropuerto:", mi_aeropuerto.code)  # Debe poner LEBL
+    print("Total Terminales:", len(mi_aeropuerto.terminals))  # Debe poner 2
+
+    # Comprobamos la T1
+    t1 = mi_aeropuerto.terminals[0]
+    print("\nTerminal:", t1.name)  # T1
+    print("Zonas en T1:", len(t1.boarding_areas))  # Debería poner 5 (A, B, C, D, E)
+    print("Primera puerta de la Zona A:", t1.boarding_areas[0].gates[0].name)  # Ej: T1-A-1
+    print("Aerolíneas cargadas en T1 (primeras 3):", t1.airlines[:3])  # Códigos ICAO
+
+
+# def IsAirlineInTerminal
+# -------------------------
+# Creamos una instancia de la terminal simulando la T1
+terminal_t1 = Terminal("T1")
+
+# Agregamos manualmente algunas aerolíneas a su lista para la prueba
+terminal_t1.airlines = ["VLG", "IBE", "DLH"]
+
+# Creamos otra terminal que se quede completamente vacía
+terminal_vacía = Terminal("T2")
+
+# Caso 1: La aerolínea SI existe en la terminal
+resultado_1 = IsAirlineInTerminal(terminal_t1, "VLG")
+print(f"Test 1 (VLG en T1)        -> Esperado: True  | Resultado: {resultado_1}")
+
+# Caso 2: La aerolínea NO existe en la terminal
+resultado_2 = IsAirlineInTerminal(terminal_t1, "RYR")
+print(f"Test 2 (RYR en T1)        -> Esperado: False | Resultado: {resultado_2}")
+
+# Caso 3: Control de error
+resultado_3 = IsAirlineInTerminal(terminal_t1, "")
+print(f"Test 3 (Nombre vacío '') -> Esperado: (False, -1) | Resultado: {resultado_3}")
+
+# Caso 4: Probando terminal sin aerolíneas
+resultado_4 = IsAirlineInTerminal(terminal_vacía, "VLG")
+print(f"Test 4 (Terminal vacía)   -> Esperado: False | Resultado: {resultado_4}")
