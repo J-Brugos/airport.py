@@ -177,62 +177,49 @@ def GetAirportCoordinates(code, lista_airports):
             return lista_airports[i].latitude, lista_airports[i].longitude
         i = i + 1
 
-def MapFlights(aircrafts):
-    # 1. Validación de lista vacía
-    if len(aircrafts) == 0:
-        print("Error: No hay vuelos para mapear.")
-        return
 
-    # 2. Abrir archivo KML
+def MapFlights(aircrafts):
+    # Cargamos la base de datos de aeropuertos una sola vez fuera del bucle
+    airports_db = LoadAirports("Airports.txt")
+
+    # Creamos o abrimos el archivo KML para escribir el mapa
     f = open("flights.kml", "w")
 
-    # Cabecera KML
+    # Escribimos la cabecera estándar del archivo KML
     f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
     f.write('<kml xmlns="http://www.opengis.net/kml/2.2">\n')
     f.write('<Document>\n')
+    f.write('  <name>Flights Map</name>\n')
 
-    # 3. Recorrido con while
     i = 0
     while i < len(aircrafts):
         vuelo = aircrafts[i]
 
-        # Buscamos las coordenadas y las guardamos temporalmente
-        coords_origen = GetAirportCoordinates(vuelo.origin, LoadAirports("Airports.txt"))
-        coords_lebl = GetAirportCoordinates("LEBL", LoadAirports("Airports.txt"))
+        # Filtro imprescindible: Solo mapeamos si tiene origen (vuelos de llegada)
+        # Si es un vuelo de salida pura de la V4, su origen es "" y lo saltamos de forma segura
+        if vuelo.origin != "":
 
-        # CONTROL DE NONE: Si alguno de los dos aeropuertos no existe, saltamos al siguiente vuelo
-        if coords_origen is None or coords_lebl is None:
-            i = i + 1
-            continue
+            coords_origen = GetAirportCoordinates(vuelo.origin, airports_db)
+            coords_lebl = GetAirportCoordinates("LEBL", airports_db)
 
-        # Si no son None, ya podemos desempaquetar de forma segura sin que rompa el programa
-        lat_origen, lon_origen = coords_origen
-        lat_lebl, lon_lebl = coords_lebl
+            # Si ambos aeropuertos existen en la base de datos, dibujamos la línea en el KML
+            if coords_origen is not None and coords_lebl is not None:
+                f.write('  <Placemark>\n')
+                f.write(f'    <name>{vuelo.ICAO} ({vuelo.airline})</name>\n')
+                f.write('    <LineString>\n')
+                f.write('      <altitudeMode>clampToGround</altitudeMode>\n')
+                f.write('      <coordinates>\n')
+                # En KML primero va la Longitud y luego la Latitud
+                f.write(f'        {coords_origen.longitude},{coords_origen.latitude},0\n')
+                f.write(f'        {coords_lebl.longitude},{coords_lebl.latitude},0\n')
+                f.write('      </coordinates>\n')
+                f.write('    </LineString>\n')
+                f.write('  </Placemark>\n')
 
-        # Definimos el color según si es Schengen
-        if IsSchengenAirport(vuelo.origin):
-            color = "FF00FF00"  # Verde para Schengen
-        else:
-            color = "FF0000FF"  # Rojo para No-Schengen
-
-        # Escribir el Placemark con estilo en línea (sin usar id)
-        f.write('<Placemark>\n')
-        f.write('  <Style>\n')
-        f.write('    <LineStyle>\n')
-        f.write(f'      <color>{color}</color>\n')
-        f.write('      <width>3</width>\n')
-        f.write('    </LineStyle>\n')
-        f.write('  </Style>\n')
-        f.write('  <LineString>\n')
-        f.write('    <coordinates>\n')
-        f.write(f'      {lon_origen},{lat_origen},0 {lon_lebl},{lat_lebl},0\n')
-        f.write('    </coordinates>\n')
-        f.write('  </LineString>\n')
-        f.write('</Placemark>\n')
-
+        # El incremento se ejecuta SIEMPRE para avanzar en el while
         i = i + 1
 
-    # Cerrar archivo
+    # Cerramos las etiquetas del KML y el archivo
     f.write('</Document>\n')
     f.write('</kml>\n')
     f.close()

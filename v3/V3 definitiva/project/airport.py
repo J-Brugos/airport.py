@@ -70,18 +70,44 @@ def convertfromdegrees (value, is_lat=True): #Al revés que la función anterior
     else:
         return f"{sign}{degrees:03d}{minutes:02d}{seconds:05.2f}"
 
-def LoadAirports (filename): #Dado un documento, lo guardamos en nuestra classe Airport y lo añadimos a nuestro fichero.
-    p = []
 
-    with open (filename, 'r') as f:
-        for linea in f:
+def LoadAirports(filename):
+    airports_list = []
+    try:
+        f = open(filename, 'r')
+
+        # Saltamos la cabecera (La primera línea del fichero que contiene "AIRPORTS")
+        f.readline()
+
+        linea = f.readline()
+        while linea != "":
             datos = linea.strip().split()
-            ICAO = datos[0]
-            latitude = converttodegrees((datos[1]))
-            longitude = converttodegrees(datos[2])
-            airport = Airport(ICAO,latitude,longitude,SCHENGEN= False)
-            p.append(airport)
-    return p
+
+            # Solo procesamos si la línea tiene los datos mínimos requeridos
+            if len(datos) >= 4:
+                # Extraemos los datos según la estructura de tu archivo
+                icao = datos[0]
+                latitude = converttodegrees(datos[1])
+                longitude = converttodegrees(datos[2])
+
+                # Volvemos a juntar el nombre del aeropuerto por si tiene espacios
+                nombre = ""
+                k = 3
+                while k < len(datos):
+                    nombre += datos[k] + " "
+                    k += 1
+                nombre = nombre.strip()
+
+                # Creamos el objeto de tipo Airport y lo añadimos
+
+                nuevo_aeropuerto = Airport(icao, latitude, longitude, nombre)
+                airports_list.append(nuevo_aeropuerto)
+
+            linea = f.readline()
+        f.close()
+    except FileNotFoundError:
+        return []
+    return airports_list
 
 def SaveSchengenAirports(airports, filename): #Gaurda solo los aeropuertos Schengen
     try:
