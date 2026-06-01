@@ -314,7 +314,89 @@ def LoadDepartures(filename):
     return departures_list
 
 
+def MergeMovements(arrivals, departures):
+    # Si alguna lista está vacía, se devuelve un código de error
+    if len(arrivals) == 0 or len(departures) == 0:
+        return -1
 
+    merged_list = []
+
+    # Para evitar modificar las listas, hacemos una copia de los arrivals
+    i = 0
+    while i < len(arrivals):
+        # Creamos un objeto nuevo con la misma información base de llegada
+        ac_arr = arrivals[i]
+
+        new_ac = Aircraft(
+            ac_arr.ICAO,
+            ac_arr.origin,
+            ac_arr.arrival,
+            ac_arr.airline,
+            "",  # Destino vacío
+            ""  # Hora de salida vacía
+        )
+        merged_list.append(new_ac)
+        i += 1
+
+    # Recorremos la lista de salidas para emparejar o añadir como pernocta
+    j = 0
+    while j < len(departures):
+        ac_dep = departures[j]
+
+        # Buscamos si este avión ya existe en nuestra lista unificada
+        encontrado = False
+        k = 0
+        while k < len(merged_list):
+            ac_merged = merged_list[k]
+
+            # Si coinciden en matrícula (ICAO)
+            if ac_merged.ICAO == ac_dep.ICAO:
+
+                # Comprobamos horarios (arrival < departure_time)
+                # Si un avión tiene múltiples movimientos al día, emparejamos con el que aún no tenga salida asignada
+                if ac_merged.arrival < ac_dep.departure_time and ac_merged.destination == "":
+                    ac_merged.destination = ac_dep.destination
+                    ac_merged.departure_time = ac_dep.departure_time
+                    encontrado = True
+                    break  # Salimos del bucle interno, ya encontramos su par compatible
+            k += 1
+
+        # Si no se ha encontrado ninguna llegada compatible es un "night aircraft"
+        if not encontrado:
+            night_ac = Aircraft(
+                ac_dep.ICAO,
+                "",  # Sin origen de llegada hoy
+                "",  # Sin hora de llegada hoy
+                ac_dep.airline,
+                ac_dep.destination,
+                ac_dep.departure_time
+            )
+            merged_list.append(night_ac)
+
+        j += 1
+
+    return merged_list
+
+
+def NightAircraft(aircrafts):
+    if len(aircrafts) == 0:
+        return -1
+
+    night_list = []
+    i = 0
+
+    while i < len(aircrafts):
+        ac = aircrafts[i]
+
+        # Un avión ha pasado la noche en el aeropuerto
+        # si su origen y llegada están vacíos
+        # pero posee un destino y hora de salida configurados
+        if (ac.origin == "" or ac.arrival == "") and ac.destination != "":
+            night_list.append(ac)
+
+        i += 1
+
+    return night_list
 
 
 #test section
