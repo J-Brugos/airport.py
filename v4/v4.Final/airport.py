@@ -136,6 +136,9 @@ def SaveSchengenAirports(airports, filename): #Gaurda solo los aeropuertos Schen
         return -1  # error general
 
 def AddAirport(airports, airport):
+    if len(airport.ICAO) != 4 or not airport.ICAO.isalpha():
+        return -1
+
     i = 0
     found = False
     while i < len(airports) and not found:
@@ -146,6 +149,9 @@ def AddAirport(airports, airport):
 
     if not found:
         airports.append(airport)
+        return 0
+
+    return -1
 
 def RemoveAirport(airports, code):
     i = 0
@@ -230,4 +236,5 @@ def MapAirports(airports, filename="airports.kml"):
     f.write('</kml>\n')
     f.close()
     print(f"Archivo {filename} generado. Ábrelo con Google Earth.")
+
 
