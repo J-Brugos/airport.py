@@ -101,13 +101,13 @@ class AirportDashboardUI:
         self.left_panel.pack(side="left", fill="y", padx=(0, 10))
         self.left_panel.pack_propagate(False)
 
-        self.center_panel = Frame(self.body, bg=self.colors["background"])
-        self.center_panel.pack(side="left", fill="both", expand=True, padx=(0, 10))
-
         self.right_panel = Frame(self.body, bg=self.colors["panel"], width=330, highlightthickness=1,
                                  highlightbackground=self.colors["accent2"])
         self.right_panel.pack(side="right", fill="y")
         self.right_panel.pack_propagate(False)
+
+        self.center_panel = Frame(self.body, bg=self.colors["background"])
+        self.center_panel.pack(side="left", fill="both", expand=True, padx=(0, 10))
 
         self.build_control_panel()
         self.build_chart_panel()
@@ -528,7 +528,10 @@ class AirportDashboardUI:
         else:
             self.render_placeholder("Select a plot from the Display Selector.")
 
-        self.figure.tight_layout()
+        if view_name == "Plot Airlines":
+            self.figure.subplots_adjust(left=0.08, right=0.99, top=0.88, bottom=0.22)
+        else:
+            self.figure.tight_layout()
         self.canvas.draw_idle()
         self.update_info()
 
@@ -665,7 +668,7 @@ class AirportDashboardUI:
         self.render_flights()
 
     def render_plot_airlines(self):
-        # Grafica horizontal de aerolineas para mantener las etiquetas legibles.
+        # Grafica vertical de todas las aerolineas con etiquetas inclinadas.
         if not self.aircrafts:
             self.render_placeholder("No arrivals loaded.")
             return
@@ -694,44 +697,34 @@ class AirportDashboardUI:
 
             i += 1
 
-        top_airlines = []
-        top_frequencies = []
-        used = []
-        limit = 22
+        x_positions = list(range(len(airlines)))
+        label_size = 8
 
-        while len(top_airlines) < limit and len(top_airlines) < len(airlines):
-            best_index = -1
-            best_value = -1
+        if len(airlines) > 80:
+            label_size = 5
+        elif len(airlines) > 50:
+            label_size = 6
+        elif len(airlines) > 30:
+            label_size = 7
 
-            i = 0
-            while i < len(airlines):
-                already_used = False
+        self.chart_ax.bar(x_positions, frequencies, color=self.colors["warning"], width=0.72)
+        self.chart_ax.set_xticks(x_positions)
+        self.chart_ax.set_xticklabels(airlines, rotation=45, ha="right", fontsize=label_size)
 
-                j = 0
-                while j < len(used):
-                    if used[j] == i:
-                        already_used = True
-                    j += 1
+        labels = self.chart_ax.get_xticklabels()
+        i = 0
+        while i < len(labels):
+            if i % 2 == 0:
+                labels[i].set_y(-0.015)
+            else:
+                labels[i].set_y(-0.055)
+            i += 1
 
-                if not already_used and frequencies[i] > best_value:
-                    best_index = i
-                    best_value = frequencies[i]
-
-                i += 1
-
-            if best_index != -1:
-                top_airlines.append(airlines[best_index])
-                top_frequencies.append(frequencies[best_index])
-                used.append(best_index)
-
-        y_positions = list(range(len(top_airlines)))
-        self.chart_ax.barh(y_positions, top_frequencies, color=self.colors["warning"])
-        self.chart_ax.set_yticks(y_positions)
-        self.chart_ax.set_yticklabels(top_airlines)
-        self.chart_ax.invert_yaxis()
         self.chart_ax.set_title("Number of flights by airline", color=self.colors["text"], fontsize=14, weight="bold")
-        self.chart_ax.set_xlabel("Number of flights", color=self.colors["muted"])
-        self.chart_ax.tick_params(axis="y", labelsize=8)
+        self.chart_ax.set_xlabel("Airline", color=self.colors["muted"], labelpad=24)
+        self.chart_ax.set_ylabel("Number of flights", color=self.colors["muted"])
+        self.chart_ax.tick_params(axis="x", pad=2)
+        self.chart_ax.margins(x=0.01)
 
     def render_plot_arrivals_schengen(self):
         # Grafica horaria apilada para llegadas Schengen y no Schengen.
@@ -1168,25 +1161,23 @@ class AirportDashboardUI:
 
         try:
             code = data[0].upper()
+
+            if len(code) != 4 or not code.isalpha():
+                self.warn("ICAO code must have exactly 4 letters")
+                return
+
             lat = float(data[1])
             lon = float(data[2])
 
             airport = Airport(code, lat, lon, False)
             SetSchengen(airport)
+            result = AddAirport(self.airports, airport)
 
-            found = False
-            i = 0
-            while i < len(self.airports):
-                if self.airports[i].ICAO == code:
-                    found = True
-                i += 1
-
-            if found:
-                self.update_output("Airport already exists.", "warning")
-                self.update_log(f"Add airport skipped: {code} already exists.", "warning")
+            if result == -1:
+                self.update_output("Airport already exists or ICAO code is invalid.", "warning")
+                self.update_log(f"Add airport skipped: {code} is duplicated or invalid.", "warning")
                 return
 
-            AddAirport(self.airports, airport)
             self.command_entry.delete(0, END)
             self.update_output(f"Airport {code} added.", "success")
             self.update_log(f"Airport {code} added manually.", "success")
