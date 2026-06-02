@@ -76,31 +76,25 @@ def LoadAirports(filename):
     try:
         f = open(filename, 'r')
 
-        # Saltamos la cabecera (La primera línea del fichero que contiene "AIRPORTS")
-        f.readline()
-
         linea = f.readline()
         while linea != "":
             datos = linea.strip().split()
 
-            # Solo procesamos si la línea tiene los datos mínimos requeridos
-            if len(datos) >= 4:
-                # Extraemos los datos según la estructura de tu archivo
+            # Airports.txt may include only ICAO + coordinates, with or without a header.
+            if len(datos) >= 3 and datos[0].upper() not in ["AIRPORTS", "AIRPORT", "ICAO", "CODE"]:
                 icao = datos[0]
-                latitude = converttodegrees(datos[1])
-                longitude = converttodegrees(datos[2])
 
-                # Volvemos a juntar el nombre del aeropuerto por si tiene espacios
-                nombre = ""
-                k = 3
-                while k < len(datos):
-                    nombre += datos[k] + " "
-                    k += 1
-                nombre = nombre.strip()
+                try:
+                    latitude = float(datos[1])
+                except ValueError:
+                    latitude = converttodegrees(datos[1])
 
-                # Creamos el objeto de tipo Airport y lo añadimos
+                try:
+                    longitude = float(datos[2])
+                except ValueError:
+                    longitude = converttodegrees(datos[2])
 
-                nuevo_aeropuerto = Airport(icao, latitude, longitude, nombre)
+                nuevo_aeropuerto = Airport(icao, latitude, longitude, False)
                 airports_list.append(nuevo_aeropuerto)
 
             linea = f.readline()
@@ -110,20 +104,33 @@ def LoadAirports(filename):
     return airports_list
 
 def SaveSchengenAirports(airports, filename): #Gaurda solo los aeropuertos Schengen
+    if len(airports) == 0:
+        return -1
+
     try:
         schengen_airports = []
 
-        for airport in airports:
+        i = 0
+        while i < len(airports):
+            airport = airports[i]
             SetSchengen(airport)  # ← Añadimos el elemento booleano Schengen
             if airport.SCHENGEN:
                 schengen_airports.append(airport)
 
+            i += 1
+
         with open(filename, 'w') as f:  #esto sirve para añadirlo al fichero
                                     # el cual queremos que se indique los aerpuertos shengen
-            for airport in schengen_airports:
+            i = 0
+            while i < len(schengen_airports):
+                airport = schengen_airports[i]
                 lat = convertfromdegrees(airport.latitude, is_lat=True)
                 lon = convertfromdegrees(airport.longitude, is_lat=False)
                 f.write(f"{airport.ICAO} {lat} {lon}\n")
+
+                i += 1
+
+        return 0
 
     except Exception:
         return -1  # error general
@@ -149,12 +156,16 @@ def RemoveAirport(airports, code):
         else:
             i += 1
 
+    if not found:
+        return -1
+
     # Desplazmos elementos hacia la izquierda
     while i < (len(airports) - 1):
         airports[i] = airports[i + 1]
         i += 1
 
     del airports[-1]  # Eliminamos el último elemento duplicado, usamos "del" porque el 0 al final podria dar problemas para comprobar.
+    return 0
 
 
 def PlotAirports(airports):
@@ -190,7 +201,9 @@ def MapAirports(airports, filename="airports.kml"):
     f.write('<Document>\n')
     f.write('  <name>Airports Map</name>\n')
 
-    for a in airports:
+    i = 0
+    while i < len(airports):
+        a = airports[i]
 
         if a.SCHENGEN == True:
             color = "ff0000ff"
@@ -211,9 +224,10 @@ def MapAirports(airports, filename="airports.kml"):
         f.write('    </Point>\n')
         f.write('  </Placemark>\n')
 
+        i += 1
+
     f.write('</Document>\n')
     f.write('</kml>\n')
     f.close()
     print(f"Archivo {filename} generado. Ábrelo con Google Earth.")
-
 

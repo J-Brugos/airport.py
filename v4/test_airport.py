@@ -1,6 +1,5 @@
-from airport import Airport, SetSchengen, PrintAirport, LoadAirports, MapAirports, RemoveAirport, AddAirport
-from aircraft import examen
-
+from project.airport import Airport, SetSchengen, PrintAirport, LoadAirports, MapAirports, RemoveAirport, AddAirport, PlotAirports
+from project.aircraft import LoadArrivals, PlotArrivals
 airport = Airport('LEBL', 41.297445, 2.0832941, None)
 SetSchengen(airport)
 PrintAirport(airport)
@@ -25,10 +24,13 @@ for line in resultado:
     SetSchengen(line)
     PrintAirport(line)
     print('\n')
-#probamos la funcion de visualizacion en el google earth
+
 MapAirports(resultado, "Mapa_Aeropuertos.kml")
 
+lista_vuelos = LoadArrivals("arrivals.txt") # Cargamos los datos del archivo que creamos
+PlotArrivals(lista_vuelos) # Llamamos a la función de gráfico
 
+print("\n--- TEST: Comprobando AddAirport y RemoveAirport ---")
 
 lista_airports = LoadAirports("Airports")
 longitud_inicial = len(lista_airports)
@@ -50,7 +52,7 @@ for line in lista_airports:
     PrintAirport(line)
     print('\n')
 
-
+PlotAirports(resultado)
 
 
 
