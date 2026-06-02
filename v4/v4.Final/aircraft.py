@@ -179,7 +179,16 @@ def PlotAirlines(aircrafts):
     plt.xlabel('Airline')
     plt.ylabel('Number of flights')
     plt.title('Number of flights by airline')
-    plt.xticks(rotation=90)
+    label_size = 7
+
+    if len(airlines) > 80:
+        label_size = 4
+    elif len(airlines) > 50:
+        label_size = 5
+    elif len(airlines) > 30:
+        label_size = 6
+
+    plt.xticks(rotation=45, ha="right", fontsize=label_size)
     plt.tight_layout()
     plt.show()
 
