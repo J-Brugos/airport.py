@@ -1,3 +1,15 @@
+import os
+
+
+def ForceExtension(filename, extension):
+    name, current_extension = os.path.splitext(filename)
+
+    if current_extension.lower() != extension:
+        return name + extension
+
+    return filename
+
+
 class Airport:
     def __init__(self, ICAO, latitude, longitude, SCHENGEN):
         self.ICAO = ICAO
@@ -107,6 +119,8 @@ def SaveSchengenAirports(airports, filename): #Gaurda solo los aeropuertos Schen
     if len(airports) == 0:
         return -1
 
+    filename = ForceExtension(filename, ".txt")
+
     try:
         schengen_airports = []
 
@@ -200,6 +214,7 @@ def PlotAirports(airports):
     pyplot.show()
 
 def MapAirports(airports, filename="airports.kml"):
+    filename = ForceExtension(filename, ".kml")
     f = open(filename, 'w')
 
     f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
