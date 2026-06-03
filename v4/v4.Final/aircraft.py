@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 from airport import IsSchengenAirport,LoadAirports
 import math
@@ -15,6 +16,15 @@ class Aircraft:
 
     def __str__(self):
         return f"{self.ICAO} ({self.airline}) | Arr: {self.origin} {self.arrival} | Dep: {self.destination} {self.departure}"
+
+
+def ForceExtension(filename, extension):
+    name, current_extension = os.path.splitext(filename)
+
+    if current_extension.lower() != extension:
+        return name + extension
+
+    return filename
 
 
 def TimeToMinutes(time):
@@ -102,6 +112,7 @@ def SaveFlights(aircrafts, filename):
     if len(aircrafts) == 0:
         return -1
 
+    filename = ForceExtension(filename, ".txt")
     file = open(filename, 'w')
     file.write("AIRCRAFT ORIGIN ARRIVAL AIRLINE\n")
 
@@ -282,9 +293,10 @@ def GetAirportCoordinates(code, lista_airports):
         i = i + 1
 
 
-def MapFlights(aircrafts, filename="flights.kml"):
+def MapFlights(aircrafts, filename="Mapa_Vuelos.kml"):
     # Cargamos la base de datos de aeropuertos una sola vez fuera del bucle
-    airports_db = LoadAirports("Airports.txt")
+    filename = ForceExtension(filename, ".kml")
+    airports_db = LoadAirports("Airports")
 
     # Creamos o abrimos el archivo KML para escribir el mapa
     f = open(filename, "w")
