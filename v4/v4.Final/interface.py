@@ -36,7 +36,6 @@ from LEBL import (
 )
 
 
-# Ventana principal de Tkinter que coordina datos, botones, graficas y registros.
 class AirportDashboardUI:
     def __init__(self):
         # Paleta de colores usada por todos los paneles y graficas.
@@ -1222,7 +1221,11 @@ class AirportDashboardUI:
             self.warn("No airports loaded")
             return
 
-        filename = filedialog.asksaveasfilename(defaultextension=".kml")
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".kml",
+            filetypes=(("KML files", "*.kml"), ("All files", "*.*")),
+            initialfile="Mapa_Aeropuertos.kml"
+        )
 
         if not filename:
             self.update_log("Map airports cancelled.", "warning")
@@ -1270,7 +1273,11 @@ class AirportDashboardUI:
             self.warn("No arrivals loaded")
             return
 
-        filename = filedialog.asksaveasfilename(defaultextension=".txt")
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            filetypes=(("Text files", "*.txt"), ("All files", "*.*")),
+            initialfile="flights.txt"
+        )
 
         if not filename:
             self.update_log("Save flights cancelled.", "warning")
@@ -1286,7 +1293,11 @@ class AirportDashboardUI:
             self.warn("No arrivals loaded")
             return
 
-        filename = filedialog.asksaveasfilename(defaultextension=".kml")
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".kml",
+            filetypes=(("KML files", "*.kml"), ("All files", "*.*")),
+            initialfile="Mapa_Vuelos.kml"
+        )
 
         if not filename:
             self.update_log("Map flights cancelled.", "warning")
@@ -1419,3 +1430,6 @@ class AirportDashboardUI:
 if __name__ == "__main__":
     dashboard = AirportDashboardUI()
     dashboard.run()
+# Ventana principal de Tkinter que coordina datos, botones, graficas y registros.
+
+
